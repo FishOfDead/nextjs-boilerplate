@@ -1,0 +1,30 @@
+name: PoC - Slack Review Notification Injection (self-trigger)
+
+# Adaptation notes (trigger surface only; the vulnerable line is unchanged):
+#   1) Trigger is pull_request:[opened] (original: review_requested, which
+#      requires an org team review request that a personal repo cannot satisfy)
+#   2) Step condition is `if: true` (original: ai-sdk team review gate)
+# The `curl` line in the "Send Slack notification" step is copied VERBATIM
+# from vercel/ai .github/workflows/slack-team-review-notification.yml
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        if: true   # ADAPTED: original was steps.check_team.outputs.ai_sdk_requested == 'true'
+        run: |
+          curl ${{ env.SLACK_PR_REVIEW_REQUEST_URL }} -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "number": "${{ env.NUMBER }}", "title": ${{ toJson(env.TITLE) }}, "url": "${{ env.URL }}"}'
+        env:
+          SLACK_PR_REVIEW_REQUEST_URL: ${{ secrets.SLACK_PR_REVIEW_REQUEST_URL }}
+          CHANNEL_ID: 'C050WU03V3N'
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
