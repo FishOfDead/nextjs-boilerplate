@@ -1,0 +1,23 @@
+name: PoC - Slack Review Notification Injection (collab path)
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        if: true
+        run: |
+          curl ${{ env.SLACK_PR_REVIEW_REQUEST_URL }} -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "number": "${{ env.NUMBER }}", "title": ${{ toJson(env.TITLE) }}, "url": "${{ env.URL }}"}'
+        env:
+          SLACK_PR_REVIEW_REQUEST_URL: ${{ secrets.SLACK_PR_REVIEW_REQUEST_URL }}
+          CHANNEL_ID: 'C050WU03V3N'
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
